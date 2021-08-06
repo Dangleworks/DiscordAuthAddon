@@ -18,6 +18,7 @@ end
 function onCreate(is_world_create)
 	for _, player in pairs(server.getPlayers()) do
 		steam_ids[player.id] = tostring(player.steam_id)
+    peer_ids[tostring(player.steam_id)] = player.id
 	end
 end
 
@@ -26,7 +27,7 @@ function onPlayerJoin(steam_id, name, peer_id, admin, auth)
         server.httpGet(auth_port, "/check?sid="..tostring(steam_id))
     end
 	steam_ids[peer_id] = tostring(steam_id)
-    peer_ids[tostring(steam_id)] = peer_id
+  peer_ids[tostring(steam_id)] = peer_id
 end
 
 function onPlayerLeave(steam_id, name, peer_id, is_admin, is_auth)
@@ -45,9 +46,9 @@ function httpReply(port, request, reply)
     if port == auth_port and string.sub(request, 1, 8) == "/getcode" then
         local data = json.parse(reply)
         if data.status then
-            server.announce("[Verify]", "Please go to "..discord_invite.." and type "..discord_prefix.."verify "..data.code, peer_ids[data.steam_id])
+            server.announce("[Verify]", "Please go to "..discord_invite.." and type "..discord_prefix.."verify "..data.code, peer_ids[tostring(data.steam_id)])
         else
-            server.announce("[Verify]", "You are already verified!", peer_ids[data.steam_id])
+            server.announce("[Verify]", "You are already verified!", peer_ids[tostring(data.steam_id)])
         end
     elseif port == auth_port and string.sub(request, 1, 6) == "/check" then
         local data = json.parse(reply)
@@ -55,18 +56,15 @@ function httpReply(port, request, reply)
         if data.status then
             for _, player in pairs(server.getPlayers()) do
                 if tostring(player.steam_id) == tostring(data.steam_id) and not player.auth then
-                    server.announce("[Verify]", "You have been authed!")
-                    server.addAuth(peer_ids[data.steam_id])
+                    server.addAuth(peer_ids[tostring(data.steam_id)])
                 end
             end
         else
             for _, player in pairs(server.getPlayers()) do
                 if tostring(player.steam_id) == tostring(data.steam_id) and player.auth then
-                    server.announce("[Verify]", "You have been de-authed!")
-                    server.addAuth(peer_ids[data.steam_id])
+                    server.removeAuth(peer_ids[tostring(data.steam_id)])
                 end
             end
-            server.removeAuth(peer_ids[data.steam_id])
         end
     end
 end
