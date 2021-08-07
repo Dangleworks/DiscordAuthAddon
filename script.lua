@@ -1,7 +1,7 @@
 auth_port = 9006
 discord_invite = "http://discord.dangle.works"
 discord_prefix = "^"
-discord_auth = true
+discord_auth = false
 steam_ids = {}
 peer_ids = {}
 tick = 0
@@ -50,7 +50,7 @@ function httpReply(port, request, reply)
         else
             server.announce("[Verify]", "You are already verified!", peer_ids[tostring(data.steam_id)])
         end
-    elseif port == auth_port and string.sub(request, 1, 6) == "/check" then
+    elseif port == auth_port and string.sub(request, 1, 6) == "/check" and discord_auth then
         local data = json.parse(reply)
         if peer_ids[tostring(data.steam_id)] == 0 then return end
         if data.status then
