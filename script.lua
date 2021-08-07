@@ -1,6 +1,5 @@
 auth_port = 9006
-discord_invite = "http://discord.dangle.works"
-discord_prefix = "^"
+verify_message = "Join the Discord server at http://discord.dangle.works and type ^verify %s"
 discord_auth = false
 popup_id = nil
 steam_ids = {}
@@ -48,7 +47,7 @@ function httpReply(port, request, reply)
     if port == auth_port and string.sub(request, 1, 8) == "/getcode" then
         local data = json.parse(reply)
         if data.status then
-            server.announce("[Verify]", "Please go to "..discord_invite.." and type "..discord_prefix.."verify "..data.code, peer_ids[tostring(data.steam_id)])
+            server.announce("[Verify]", string.format(verify_message, data.code), peer_ids[tostring(data.steam_id)])
         else
             server.announce("[Verify]", "You are already verified!", peer_ids[tostring(data.steam_id)])
         end
@@ -63,7 +62,7 @@ function httpReply(port, request, reply)
                 end
             end
         else
-          server.setPopupScreen(peer_ids[tostring(data.steam_id)], popup_id, "", true, "You are not verified!\nRun ?verify", -0.8, 0.88)
+          server.setPopupScreen(peer_ids[tostring(data.steam_id)], popup_id, "", true, "You are not verified!\nRun ?verify", -0.88, 0.88)
             for _, player in pairs(server.getPlayers()) do
                 if discord_auth and tostring(player.steam_id) == tostring(data.steam_id) and player.auth then
                     server.removeAuth(peer_ids[tostring(data.steam_id)])
