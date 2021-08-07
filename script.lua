@@ -50,18 +50,20 @@ function httpReply(port, request, reply)
         else
             server.announce("[Verify]", "You are already verified!", peer_ids[tostring(data.steam_id)])
         end
-    elseif port == auth_port and string.sub(request, 1, 6) == "/check" and discord_auth then
+    elseif port == auth_port and string.sub(request, 1, 6) == "/check" then
         local data = json.parse(reply)
         if peer_ids[tostring(data.steam_id)] == 0 then return end
         if data.status then
+          server.announce("[Verify]", "You have been verified!", peer_ids[tostring(data.steam_id)])
             for _, player in pairs(server.getPlayers()) do
-                if tostring(player.steam_id) == tostring(data.steam_id) and not player.auth then
+                if discord_auth and tostring(player.steam_id) == tostring(data.steam_id) and not player.auth then
                     server.addAuth(peer_ids[tostring(data.steam_id)])
                 end
             end
         else
+          server.announce("[Verify]", "You have been unverified!", peer_ids[tostring(data.steam_id)])
             for _, player in pairs(server.getPlayers()) do
-                if tostring(player.steam_id) == tostring(data.steam_id) and player.auth then
+                if discord_auth and tostring(player.steam_id) == tostring(data.steam_id) and player.auth then
                     server.removeAuth(peer_ids[tostring(data.steam_id)])
                 end
             end
