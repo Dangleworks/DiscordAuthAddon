@@ -2,6 +2,7 @@ auth_port = 9006
 discord_invite = "http://discord.dangle.works"
 discord_prefix = "^"
 discord_auth = false
+popup_id = nil
 steam_ids = {}
 peer_ids = {}
 tick = 0
@@ -16,6 +17,7 @@ function onTick()
 end
 
 function onCreate(is_world_create)
+  popup_id = server.getMapID()
 	for _, player in pairs(server.getPlayers()) do
 		steam_ids[player.id] = tostring(player.steam_id)
     peer_ids[tostring(player.steam_id)] = player.id
@@ -54,14 +56,14 @@ function httpReply(port, request, reply)
         local data = json.parse(reply)
         if peer_ids[tostring(data.steam_id)] == 0 then return end
         if data.status then
-          server.announce("[Verify]", "You have been verified!", peer_ids[tostring(data.steam_id)])
+          server.setPopupScreen(peer_ids[tostring(data.steam_id)], popup_id, "", false, "", -0.6, 0.88)
             for _, player in pairs(server.getPlayers()) do
                 if discord_auth and tostring(player.steam_id) == tostring(data.steam_id) and not player.auth then
                     server.addAuth(peer_ids[tostring(data.steam_id)])
                 end
             end
         else
-          server.announce("[Verify]", "You have been unverified!", peer_ids[tostring(data.steam_id)])
+          server.setPopupScreen(peer_ids[tostring(data.steam_id)], popup_id, "", true, "You are not verified!\nRun ?verify", -0.6, 0.88)
             for _, player in pairs(server.getPlayers()) do
                 if discord_auth and tostring(player.steam_id) == tostring(data.steam_id) and player.auth then
                     server.removeAuth(peer_ids[tostring(data.steam_id)])
