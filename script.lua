@@ -8,7 +8,7 @@ tick = 0
 
 function onTick()
     tick = tick + 1
-    if tick % 180 == 0 and discord_auth then
+    if tick % 180 == 0 then
         for _, player in pairs(server.getPlayers()) do
             server.httpGet(auth_port, "/check?sid="..tostring(player.steam_id))
         end
