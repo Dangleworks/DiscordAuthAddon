@@ -1,6 +1,7 @@
 auth_port = 9006
 verify_message = "Join the Discord server at http://discord.dangle.works and type ^verify %s"
 unverified_join_message = "You are not verified!\nYou can only spawn 1 vehicle at a time\nTo raise this limit, please type ?verify"
+unverified_popup = "You are not verified!\nYou can only spawn 1 vehicle at a time\nRun ?verify to link your Discord account and raise this limit!"
 discord_auth = false
 popup_id = nil
 steam_ids = {}
@@ -62,7 +63,7 @@ function httpReply(port, request, reply)
                 end
             end
         else
-          server.setPopupScreen(peer_ids[tostring(data.steam_id)], popup_id, "", true, "You are not verified!\nRun ?verify", -0.88, 0.88)
+          server.setPopupScreen(peer_ids[tostring(data.steam_id)], popup_id, "", true, unverified_popup, -0.88, 0.88)
             for _, player in pairs(server.getPlayers()) do
                 if discord_auth and tostring(player.steam_id) == tostring(data.steam_id) and player.auth then
                     server.removeAuth(peer_ids[tostring(data.steam_id)])
@@ -70,10 +71,10 @@ function httpReply(port, request, reply)
             end
         end
     elseif port == auth_port and string.sub(request, 1, 8) == "/check?v" then
-      local data = json.parse(reply)
-      if not data.status then
-        server.announce("[Verify]", unverified_join_message, peer_ids[tostring(data.steam_id)])
-      end
+      -- local data = json.parse(reply)
+      -- if not data.status then
+      --   server.announce("[Verify]", unverified_join_message, peer_ids[tostring(data.steam_id)])
+      -- end
     end
 end
 
