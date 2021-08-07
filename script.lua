@@ -63,7 +63,7 @@ function httpReply(port, request, reply)
                 end
             end
         else
-          server.setPopupScreen(peer_ids[tostring(data.steam_id)], popup_id, "", true, unverified_popup, -0.88, 0.88)
+          server.setPopupScreen(peer_ids[tostring(data.steam_id)], popup_id, "", true, unverified_popup, -0.88, 0.8)
             for _, player in pairs(server.getPlayers()) do
                 if discord_auth and tostring(player.steam_id) == tostring(data.steam_id) and player.auth then
                     server.removeAuth(peer_ids[tostring(data.steam_id)])
