@@ -1,9 +1,11 @@
 auth_port = 9006
 verify_message = "Join the Discord server at http://discord.dangle.works and type ^verify %s"
+unverified_join_message = "You are not verified!\nYou can only spawn 1 vehicle at a time\nTo raise this limit, please type ?verify"
 discord_auth = false
 popup_id = nil
 steam_ids = {}
 peer_ids = {}
+unverified_sent = {}
 tick = 0
 
 function onTick()
@@ -24,9 +26,7 @@ function onCreate(is_world_create)
 end
 
 function onPlayerJoin(steam_id, name, peer_id, admin, auth)
-    if discord_auth then
-        server.httpGet(auth_port, "/check?sid="..tostring(steam_id))
-    end
+  server.httpGet(auth_port, "/check?v&sid="..tostring(steam_id))
 	steam_ids[peer_id] = tostring(steam_id)
   peer_ids[tostring(steam_id)] = peer_id
 end
@@ -69,6 +69,11 @@ function httpReply(port, request, reply)
                 end
             end
         end
+    elseif port == auth_port and string.sub(request, 1, 8) == "/check?v" then
+      local data = json.parse(reply)
+      if not data.status then
+        server.announce("[Verify]", unverified_join_message, peer_ids[tostring(data.steam_id)])
+      end
     end
 end
 
@@ -106,7 +111,7 @@ local function skip_delim(str, pos, delim, err_if_missing)
   pos = pos + #str:match('^%s*', pos)
   if str:sub(pos, pos) ~= delim then
     if err_if_missing then
-      error('Expected ' .. delim .. ' near position ' .. pos)
+      return nil
     end
     return pos, false
   end
@@ -118,14 +123,14 @@ end
 local function parse_str_val(str, pos, val)
   val = val or ''
   local early_end_error = 'End of input found while parsing string.'
-  if pos > #str then error(early_end_error) end
+  if pos > #str then return nil end
   local c = str:sub(pos, pos)
   if c == '"'  then return val, pos + 1 end
   if c ~= '\\' then return parse_str_val(str, pos + 1, val .. c) end
   -- We must have a \ character.
   local esc_map = {b = '\b', f = '\f', n = '\n', r = '\r', t = '\t'}
   local nextc = str:sub(pos + 1, pos + 1)
-  if not nextc then error(early_end_error) end
+  if not nextc then return nil end
   return parse_str_val(str, pos + 2, val .. (esc_map[nextc] or nextc))
 end
 
@@ -133,7 +138,7 @@ end
 local function parse_num_val(str, pos)
   local num_str = str:match('^-?%d+%.?%d*[eE]?[+-]?%d*', pos)
   local val = tonumber(num_str)
-  if not val then error('Error parsing number at position ' .. pos .. '.') end
+  if not val then return nil end
   return val, pos + #num_str
 end
 
@@ -144,7 +149,7 @@ function json.stringify(obj, as_key)
   local s = {}  -- We'll build the string as an array of strings to be concatenated.
   local kind = kind_of(obj)  -- This is 'array' if it's an array or type(obj) otherwise.
   if kind == 'array' then
-    if as_key then error('Can\'t encode array as key.') end
+    if as_key then return nil end
     s[#s + 1] = '['
     for i, val in ipairs(obj) do
       if i > 1 then s[#s + 1] = ', ' end
@@ -152,7 +157,7 @@ function json.stringify(obj, as_key)
     end
     s[#s + 1] = ']'
   elseif kind == 'table' then
-    if as_key then error('Can\'t encode table as key.') end
+    if as_key then return nil end
     s[#s + 1] = '{'
     for k, v in pairs(obj) do
       if #s > 1 then s[#s + 1] = ', ' end
@@ -171,7 +176,7 @@ function json.stringify(obj, as_key)
   elseif kind == 'nil' then
     return 'null'
   else
-    error('Unjsonifiable type: ' .. kind .. '.')
+    return nil
   end
   return table.concat(s)
 end
@@ -180,7 +185,7 @@ json.null = {}  -- This is a one-off table to represent the null value.
 
 function json.parse(str, pos, end_delim)
   pos = pos or 1
-  if pos > #str then error('Reached unexpected end of input.') end
+  if pos > #str then return nil end
   local pos = pos + #str:match('^%s*', pos)  -- Skip whitespace.
   local first = str:sub(pos, pos)
   if first == '{' then  -- Parse an object.
@@ -189,7 +194,7 @@ function json.parse(str, pos, end_delim)
     while true do
       key, pos = json.parse(str, pos, '}')
       if key == nil then return obj, pos end
-      if not delim_found then error('Comma missing between object items.') end
+      if not delim_found then return nil end
       pos = skip_delim(str, pos, ':', true)  -- true -> error if missing.
       obj[key], pos = json.parse(str, pos)
       pos, delim_found = skip_delim(str, pos, ',')
@@ -200,7 +205,7 @@ function json.parse(str, pos, end_delim)
     while true do
       val, pos = json.parse(str, pos, ']')
       if val == nil then return arr, pos end
-      if not delim_found then error('Comma missing between array items.') end
+      if not delim_found then return nil end
       arr[#arr + 1] = val
       pos, delim_found = skip_delim(str, pos, ',')
     end
@@ -217,7 +222,7 @@ function json.parse(str, pos, end_delim)
       if str:sub(pos, lit_end) == lit_str then return lit_val, lit_end + 1 end
     end
     local pos_info_str = 'position ' .. pos .. ': ' .. str:sub(pos, pos + 10)
-    error('Invalid json syntax starting at ' .. pos_info_str)
+    return nil
   end
 end
 
